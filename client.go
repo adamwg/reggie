@@ -129,13 +129,17 @@ func (client *Client) NewRequest(method string, path string, opts ...requestOpti
 }
 
 // Do executes a Request and returns a Response.
-func (client *Client) Do(req *Request) (*Response, error) {
+func (client *Client) Do(req *Request, userPass ...string) (*Response, error) {
 	resp, err := req.Execute(req.Method, req.URL)
 	if err != nil {
 		return resp, err
 	}
 	if resp.IsUnauthorized() {
-		resp, err = client.retryRequestWithAuth(req, resp)
+		if len(userPass) == 2 {
+			resp, err = client.retryRequestWithAuth(req, resp, userPass[0], userPass[1])
+		} else {
+			resp, err = client.retryRequestWithAuth(req, resp)
+		}
 	}
 	return resp, err
 }

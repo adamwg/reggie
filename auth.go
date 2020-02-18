@@ -26,7 +26,7 @@ type (
 	}
 )
 
-func (client *Client) retryRequestWithAuth(originalRequest *Request, originalResponse *Response) (*Response, error) {
+func (client *Client) retryRequestWithAuth(originalRequest *Request, originalResponse *Response, userPass ...string) (*Response, error) {
 	authHeaderRaw := originalResponse.Header().Get("Www-Authenticate")
 	if authHeaderRaw == "" {
 		return originalResponse, nil
@@ -36,6 +36,10 @@ func (client *Client) retryRequestWithAuth(originalRequest *Request, originalRes
 		originalRequest.QueryParam.Del(k)
 	}
 
+	username, password := client.Config.Username, client.Config.Password
+	if l := len(userPass); l == 2 {
+		username, password = userPass[0], userPass[1]
+	}
 	authenticationType := authHeaderMatcher.ReplaceAllString(authHeaderRaw, "$1")
 	if strings.EqualFold(authenticationType, "bearer") {
 		h := parseAuthHeader(authHeaderRaw)
@@ -43,7 +47,7 @@ func (client *Client) retryRequestWithAuth(originalRequest *Request, originalRes
 			SetQueryParam("service", h.Service).
 			SetHeader("Accept", "application/json").
 			SetHeader("User-Agent", client.Config.UserAgent).
-			SetBasicAuth(client.Config.Username, client.Config.Password)
+			SetBasicAuth(username, password)
 		if h.Scope != "" {
 			req.SetQueryParam("scope", h.Scope)
 		}
